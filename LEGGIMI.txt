@@ -1,0 +1,17 @@
+FOTO DEI GIOCATORI
+
+Le foto si caricano dal gioco: Menu > Profilo (o "Il mio profilo" nella prima pagina). Restano normali, senza filtri.
+Le foto sono collegate al NOME con cui entri al tavolo: usa sempre lo stesso nome.
+
+QUANDO COMPARE OGNI FOTO (nei fumetti del tavolo)
+  Foto profilo  Accanto al nome nella lista giocatori e al posto di ogni espressione mancante
+  Preoccupato   Chiami un all-in o ti rilanciano forte contro        battuta: GULP...
+  Felice        Vinci un piatto grosso                                battuta: YEAH!
+  Forte         Fai all-in o un rilancio pesante, o chiami sicuro    battuta: Tutto qui?
+  Sorpreso      Qualcuno va all-in o rilancia moltissimo             battuta: EH?!
+  Deluso        Fai fold con un piatto grosso o perdi la mano        battuta: ...sigh
+  Disperato     Vai all-in a corto di fiches o perdi un all-in       battuta: NOOO!
+  Pensieroso    Un rilancio piccolo o medio: stai riflettendo        battuta: Hmm...
+
+PROVE: i file in questa cartella (nome-espressione.jpg, es. nanni-sorpreso.jpg) fanno da foto di prova.
+Chi non ha foto usa quelle di "nanni" (STYLE.comic.fallback in index.html; metti "" per disattivare).
