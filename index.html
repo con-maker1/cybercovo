@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Il Cyber Covo 1</title>
+<title>Il Cyber Covo</title>
 <meta name="theme-color" content="#0b0f1a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -133,6 +133,7 @@ select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);b
 .arcade #mk,.arcade button.red{background:var(--st-red)}
 .arcade #go{background:var(--st-blue)}
 #crt.soft{opacity:.45}
+#ttl.off{color:#ff6b6b}#ttl.off::after{content:" (offline)"}
 .n1 .cm-grid{grid-template-rows:1fr}
 .srows{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .srow{display:flex;align-items:center;gap:10px;border:3px solid var(--st-edge);border-radius:12px;padding:6px 8px;background:rgba(0,0,0,.25)}
@@ -431,11 +432,23 @@ const CHIPS={
   chrome:{n:"Chrome",sym:"●",glow:0,c:[["#cfd8dc","#37474f"],["#b0bec5","#263238"],["#90a4ae","#10151a"],["#78909c","#10151a"],["#546e7a","#eceff1"],["#37474f","#eceff1"]]},
   hacker:{n:"Hacker",sym:"01",glow:6,c:[["#020a04","#19ff7a"],["#04140a","#12cc62"],["#06200f","#0d9f4c"],["#020a04","#7bffb0"],["#04140a","#b6ffd3"],["#020a04","#ffffff"]]}
 };
+/* Scompone un importo con le fiches vere (10, 25, 50, 100, 500) usando meno fiches possibile; il resto che non si può formare va in fiches da 1 */
+const BD={};
+function breakdown(a){
+  if(BD[a])return BD[a];
+  const D=[500,100,50,25,10],par=new Int16Array(a+1).fill(-1),ok=new Uint16Array(a+1);ok[0]=1;
+  for(let x=1;x<=a;x++)for(let k=0;k<5;k++){const y=x-D[k];if(y>=0&&ok[y]){const c=ok[y]+1;if(!ok[x]||c<ok[x]){ok[x]=c;par[x]=k}}}
+  let x=a;while(x>0&&!ok[x])x--;
+  const cnt=[0,0,0,0,0,a-x];
+  for(let y=x;y>0;y-=D[par[y]])cnt[par[y]]++;
+  return BD[a]=cnt;
+}
 function chipStack(a,sm){
   if(!a)return "";
-  const st=CHIPS[SKIN.chips]||CHIPS.standard;let r=a,h="";
+  const st=CHIPS[SKIN.chips]||CHIPS.standard;let h="";
+  const cnt=breakdown(a);
   DENOMS.forEach((d,i)=>{
-    const n=Math.floor(r/d);r-=n*d;if(!n)return;const m=Math.min(n,5);
+    const n=cnt[i];if(!n)return;const m=Math.min(n,5);
     h+=`<div class="col">${Array.from({length:m},(_,j)=>`<i class="chip" style="--k1:${st.c[i][0]};--k2:${st.c[i][1]};--kg:${st.glow||0}px;z-index:${m-j}">${st.sym}</i>`).join("")}</div>`;
   });
   return `<div class="cs ${sm?"sm":""}">${h}</div>`;
@@ -783,7 +796,10 @@ function broadcast(){
 const rnd=()=>Array.from({length:4},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.random()*24|0]).join("");
 const err=m=>{const e=$("#er");if(e)e.textContent=m;else alert(m)};
 
-let KA=0;
+let KA=0,WL=null;
+async function keepAwake(){try{if(navigator.wakeLock&&!document.hidden)WL=await navigator.wakeLock.request("screen")}catch(e){}}
+const dot=()=>{const t=$("#ttl");if(t)t.classList.toggle("off",!!(isHost&&peer&&peer.disconnected))};
+document.addEventListener("visibilitychange",()=>{if(document.hidden||!isHost)return;keepAwake();try{if(peer&&peer.disconnected&&!peer.destroyed)peer.reconnect()}catch(e){}dot()});
 const peerOpts=()=>Object.assign({config:{iceServers:STYLE.net.ice.concat(STYLE.net.turn?[STYLE.net.turn]:[]),iceCandidatePoolSize:4}},STYLE.net.server||{});
 const NETLOG=[],nl=m=>{NETLOG.push(Math.round(performance.now()/1000)+"s "+m);if(NETLOG.length>14)NETLOG.shift()};
 const INAPP=/FBAN|FBAV|Instagram|MicroMessenger|Snapchat|TikTok|Line\/|; wv\)|WhatsApp|Telegram/i.test(navigator.userAgent);
@@ -797,10 +813,10 @@ function createTable(name){
   if(noPeer())return;
   MYNAME=name;CODE=rnd();
   peer=new Peer("txh-"+CODE,peerOpts());setupCalls();
-  peer.on("open",id=>{nl("tavolo aperto sul servizio ("+id+")");if(isHost&&G){if(view)render(view);return}isHost=true;newGame(name);G.players[0].pid=peer.id;broadcast()});
+  peer.on("open",id=>{nl("tavolo aperto sul servizio ("+id+")");keepAwake();dot();if(isHost&&G){if(view)render(view);return}isHost=true;newGame(name);G.players[0].pid=peer.id;broadcast()});
   peer.on("error",e=>{nl("errore servizio: "+e.type);if(e.type=="unavailable-id")createTable(name);else errD(netErr(e))});
   /* se il collegamento al servizio cade, i nuovi giocatori non trovano più il tavolo: lo riattacco da solo */
-  peer.on("disconnected",()=>{nl("tavolo scollegato dal servizio, riconnetto");if(view)render(view);setTimeout(()=>{try{if(peer&&!peer.destroyed)peer.reconnect()}catch(x){}},1500)});
+  peer.on("disconnected",()=>{nl("tavolo scollegato dal servizio, riconnetto");dot();if(view)render(view);setTimeout(()=>{try{if(peer&&!peer.destroyed)peer.reconnect()}catch(x){}},1500)});
   clearInterval(KA);KA=setInterval(()=>{try{if(peer&&peer.disconnected&&!peer.destroyed)peer.reconnect()}catch(x){}},15000);
   peer.on("connection",c=>{
     c.on("data",m=>onMsg(c,m));
@@ -835,19 +851,27 @@ function joinTable(code,name,spec){
   MYNAME=name;
   CODE=code.toUpperCase();
   peer=new Peer(undefined,peerOpts());setupCalls();
-  let done=false;nl("provo a entrare nel tavolo "+CODE);const fail=m=>{if(!done){done=true;nl("esito: "+m.slice(0,40));errD(m)}};
-  const tm=setTimeout(()=>fail("Il collegamento non parte (15 secondi). Può dipendere dalla rete o dal firewall: prova a cambiare rete (Wi-Fi o dati mobili) oppure usa «Test connessione»."),15000);
-  peer.on("error",e=>{clearTimeout(tm);nl("errore servizio: "+e.type);fail(netErr(e))});
-  peer.on("open",()=>{
-    if(hostConn&&hostConn.open)return;
-    nl("servizio raggiunto, cerco il tavolo");
+  let done=false,tries=0,tm=0;nl("provo a entrare nel tavolo "+CODE);
+  const fail=m=>{if(!done){done=true;clearTimeout(tm);nl("esito: "+m.slice(0,40));errD(m)}};
+  const arm=(ms,m)=>{clearTimeout(tm);tm=setTimeout(()=>fail(m),ms)};
+  const dial=()=>{
     hostConn=peer.connect("txh-"+CODE,{reliable:true});
     setTimeout(()=>{const pc=hostConn&&hostConn.peerConnection;if(pc)pc.addEventListener("iceconnectionstatechange",()=>{nl("rete: "+pc.iceConnectionState);if(pc.iceConnectionState=="failed")fail("Collegamento diretto bloccato dalla rete (serve un server di rilancio TURN). Prova con un’altra rete o usa «Test connessione».")})},600);
     hostConn.on("open",()=>{nl("collegato al tavolo");done=true;clearTimeout(tm);hostConn.send({t:"join",n:name,s:!!spec});sendMyFaces()});
     hostConn.on("error",e=>fail("Errore di collegamento: "+((e&&e.type)||e)));
     hostConn.on("data",m=>{if(m.t=="s")render(m.v);else if(m.t=="e")err(m.m);else if(m.t=="face")faceIn(m.n,m.e,m.d);else if(m.t=="lb")lbIn(m.d)});
     hostConn.on("close",()=>alert("Connessione persa. Ricarica la pagina e rientra con lo stesso nome per riprendere il tuo posto."));
+  };
+  arm(20000,"Il collegamento non parte (20 secondi). Può dipendere dalla rete o dal firewall: prova a cambiare rete (Wi-Fi o dati mobili) oppure usa «Test connessione».");
+  peer.on("error",e=>{
+    nl("errore servizio: "+e.type);
+    if(e.type=="peer-unavailable"&&!done&&++tries<=20){
+      err(`Tavolo non trovato: riprovo (${tries}/20). L’admin deve tenere la pagina aperta e in primo piano.`);
+      arm(75000,netErr(e));setTimeout(()=>{if(!done)dial()},3000);return;
+    }
+    fail(netErr(e));
   });
+  peer.on("open",()=>{if(hostConn&&hostConn.open)return;nl("servizio raggiunto, cerco il tavolo");dial()});
 }
 
 const send=m=>{if(isHost){if(m.t=="act")act(0,m.a,m.to);else if(m.t=="rebuy")rebuy(0);else if(m.t=="cfg")setCfg(m.k,m.v);else if(m.t=="talk")toggleTalk(m.k);else if(m.t=="ai")aiSeat(m.k);else if(m.t=="set")setOpt(m.k);else if(m.t=="rbmax"){G.rbmax=Math.max(1,Math.min(3,+m.k||1));broadcast()}else if(m.t=="end")endSession();else if(m.t=="caster"){G.caster=+m.k;broadcast()}else if(m.t=="cdelay"){G.cdelay=+m.k;broadcast()}else if(m.t=="v"){G.players[0].voice=!!m.on;broadcast()}}else if(hostConn&&hostConn.open)hostConn.send(m)};
@@ -989,9 +1013,9 @@ muT();muBtn.onclick=()=>{MUTE=!MUTE;try{localStorage.setItem("mu",MUTE?"1":"0")}
 
 /* Musica di sottofondo (audio/The_House_Split.mp3), parte al primo tocco */
 let MUS=true;try{MUS=localStorage.getItem("mus")!="0"}catch(e){}
-const bgm=new Audio("audio/The_House_Split.mp3");bgm.loop=true;bgm.volume=.5;if(EMB){MUTE=true;MUS=false}
+const bgm=new Audio();bgm.preload="none";let bsrc=0;bgm.loop=true;bgm.volume=.5;if(EMB){MUTE=true;MUS=false}
 const musBtn=$("#mus"),musT=()=>musBtn.textContent=MUS?"Musica on":"Musica off";
-const musGo=()=>{if(MUS&&bgm.paused)bgm.play().catch(()=>{})};
+const musGo=()=>{if(MUS&&bgm.paused){if(!bsrc){bsrc=1;bgm.src="audio/The_House_Split.mp3"}bgm.play().catch(()=>{})}};
 let alt=0;bgm.onerror=()=>{if(!alt){alt=1;bgm.src="audio/The House Split.mp3";musGo()}else musBtn.textContent="Musica: file non trovato"};
 musT();addEventListener("pointerdown",musGo);addEventListener("keydown",musGo);
 musBtn.onclick=e=>{e.stopPropagation();MUS=!MUS;try{localStorage.setItem("mus",MUS?"1":"0")}catch(x){}musT();if(MUS)musGo();else bgm.pause()};
