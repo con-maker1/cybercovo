@@ -1,0 +1,15 @@
+Scenari con foto per i tavoli.
+Metti qui un'immagine con il nome del tavolo (anche .png o .webp):
+  bancaditalia.jpg   Banca d'Italia
+  longo.jpg          Longo
+  riki.jpg           Casa di Riki
+  spiridione.jpg     Casa di Spiridione
+  gabri.jpg          Casa di Gabri
+  vinzo.jpg          Casa di Vinzo
+  indovino.jpg       Casa di Indovino
+  lauro.jpg          L'Auro
+  xfactor.jpg        X Factor
+  conte.jpg          Casa del Conte
+  tenerissima.jpg    Da Tenerissima
+  zarosa.jpg         Dalla Za Rosa
+Se il file c'e', viene usato come sfondo in pixel art; altrimenti resta lo sfondo a colori dell'app.
